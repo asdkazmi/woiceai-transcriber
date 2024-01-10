@@ -1,0 +1,8 @@
+{
+  "input": {
+    "audio_urls": [
+      "https://followupboss.s3.amazonaws.com/attachments/3919f291-16c1-4794-82aa-950d1f078bff/REf4cd5bf4c16f31f346703b6e637349ba?X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA3AH3TH27OZNLELFL%2F20240109%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20240109T120634Z&X-Amz-SignedHeaders=host&X-Amz-Expires=1200&X-Amz-Signature=3c3adecb5808ef41c1ef4055c7bf8f06d8ee4250f0e9597383c23a742a335f0c",
+      "https://followupboss.s3.amazonaws.com/attachments/78a51c7c-3b45-41b1-992d-de6e32059605/RE410d79ee8042dc58c36793a7450d4dc3?X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA3AH3TH27OZNLELFL%2F20240109%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20240109T120634Z&X-Amz-SignedHeaders=host&X-Amz-Expires=1200&X-Amz-Signature=524fa97be976bc3d94f04cf95e975db3a66799023ff2ac6bbd58700b36f4bc93"
+    ]
+  }
+}
