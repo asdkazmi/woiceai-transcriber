@@ -111,7 +111,11 @@ def retrieve_data_from_urls(urls):
     st = time.time()
 
     # Filter out empty strings from urls
-    urls = [url for url in urls if url]
+    if type(urls) == list:
+        urls = [url for url in urls if url]
+    else:
+        logging.info("The provided variable is not a list.")
+        return None, None
 
     for url in urls:
         response = requests.get(url)
@@ -136,12 +140,16 @@ def retrieve_data_from_file(urls):
     st = time.time()
 
     # Filter out empty strings from urls
-    urls = [url for url in urls if url]
+    if type(urls) == list:
+        urls = [url for url in urls if url]
+    else:
+        logging.info("The provided variable is not a list.")
+        return None, None
 
     logging.info("Audio diarization in progress...")
 
     for url in urls:
-        d = pipe(url, min_speakers=1, max_speakers=10)
+        d = pipe(url, min_speakers=1, max_speakers=50)
         diarization_list.append(d)
 
         all_audios.append(librosa.load(url))
