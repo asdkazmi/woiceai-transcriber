@@ -134,25 +134,25 @@ def retrieve_data_from_urls(urls):
     return all_audios, diarization_list
 
 
-def retrieve_data_from_file(urls):
+def retrieve_data_from_file(paths):
     all_audios = []
     diarization_list = []
     st = time.time()
 
     # Filter out empty strings from urls
-    if type(urls) == list:
-        urls = [url for url in urls if url]
+    if type(paths) == list:
+        paths = [url for url in paths if url]
     else:
         logging.info("The provided variable is not a list.")
         return None, None
 
     logging.info("Audio diarization in progress...")
 
-    for url in urls:
-        d = pipe(url, min_speakers=1, max_speakers=50)
+    for path in paths:
+        d = pipe(path, min_speakers=1, max_speakers=50)
         diarization_list.append(d)
 
-        all_audios.append(librosa.load(url))
+        all_audios.append(librosa.load(path))
 
     et = time.time()
     t = et - st
@@ -173,7 +173,6 @@ def process_diarizations(diarizations):
 
 def transcriber_v2_nemo_asr(urls, from_file=False):
     stt = time.time()
-
     # Filter out empty strings from urls
     if isinstance(urls, list):
         urls = [url for url in urls if url]
