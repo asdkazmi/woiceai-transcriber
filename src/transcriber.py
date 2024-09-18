@@ -141,7 +141,7 @@ def retrieve_data_from_file(paths):
 
     # Filter out empty strings from urls
     if type(paths) == list:
-        paths = [url for url in paths if url]
+        paths = [path for path in paths if path]
     else:
         logging.info("The provided variable is not a list.")
         return None, None
@@ -220,6 +220,7 @@ def transcriber_v2_nemo_asr(urls, from_file=False):
                 # "audio": ""
                 # "audio": base64.b64encode(audios[i][0]).decode('utf-8')
             }])
+            os.remove(output_path)
 
         else:
             timeline_norm = normalize_timeline_v2(timelines[i])
@@ -308,3 +309,48 @@ def transcribe_audio_with_classification_v2_nemo_asr(audio, timeline_norm):
     logging.info(f"Transcription time: {t:.3f} sec")
 
     return text, chunks
+
+
+def transcribe_without_diarization(paths, from_file):
+    try:
+        stt = time.time()
+        logger.info(f"Transcribing : {paths}")
+        all_audios = []
+        transcriptions = []
+        num_of_urls = len(paths)
+        if type(paths) == list:
+            paths = [path for path in paths if path]
+        else:
+            logging.info("The provided variable is not a list.")
+            return None, None
+
+        for path in paths:
+            if from_file:
+                all_audios.append(librosa.load(path, sr=16000, mono=True))
+            else:
+                response = requests.get(path)
+                response.raise_for_status()
+                audio = BytesIO(response.content)
+                all_audios.append(librosa.load(audio))
+        for i in range(num_of_urls):
+            audio, sr = all_audios[i]
+            output_path = "output.wav"
+            sf.write(output_path, audio, sr)
+            output = asr_model.transcribe(paths2audio_files=[output_path], batch_size=4)
+            transcription = output[0][0]
+
+            transcriptions.append([{
+                "text": transcription,
+            }])
+            os.remove(output_path)
+
+        ett = time.time()
+        t = ett - stt
+        logging.info(f'Transcription time: {t:.3f} sec')
+
+        return {"status": "completed",
+                "transcription": transcriptions
+                }
+    except Exception as e:
+        print(e)
+

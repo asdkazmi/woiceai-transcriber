@@ -16,11 +16,8 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 
 logging.info(f'Loading speaker-diarization model... on {device}')
 
-speaker_diarization_model = "pyannote/speaker-diarization-3.1"
-if 'HF_TOKEN' in os.environ:
-    pipe = Pipeline.from_pretrained(speaker_diarization_model, use_auth_token=os.environ['HF_TOKEN'])
-else:
-    pipe = Pipeline.from_pretrained(speaker_diarization_model)
+speaker_diarization_model = "/pyannote/speaker-diarization-3.1/config.yaml"
+pipe = Pipeline.from_pretrained(speaker_diarization_model)
 
 pipe = pipe.to(torch.device(device))
 

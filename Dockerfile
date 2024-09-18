@@ -50,11 +50,21 @@ RUN pip install -r requirements.txt
 #RUN pip install Cython
 #RUN pip install nemo_toolkit['all']
 
+RUN git clone https://${HUGGINGFACE_TOKEN}:${HUGGINGFACE_TOKEN}@huggingface.co/pyannote/segmentation-3.0 /models/segmentation-3.0
+RUN git clone https://${HUGGINGFACE_TOKEN}:${HUGGINGFACE_TOKEN}@huggingface.co/pyannote/wespeaker-voxceleb-resnet34-LM /models/wespeaker-voxceleb-resnet34-LM
+RUN mv /models/wespeaker-voxceleb-resnet34-LM/pytorch_model.bin /models/wespeaker-voxceleb-resnet34-LM/pyannote_model.bin
+# Modify the configuration file to replace only the first occurrence
+RUN sed -i 's|segmentation: pyannote/segmentation-3.0|segmentation: /models/segmentation-3.0/pytorch_model.bin|g' /pyannote/speaker-diarization-3.1/config.yaml
+RUN sed -i 's|embedding: pyannote/wespeaker-voxceleb-resnet34-LM|embedding: /models/wespeaker-voxceleb-resnet34-LM/pyannote_model.bin|g' /pyannote/speaker-diarization-3.1/config.yaml
+
+
+
 ENV HF_DATASETS_CACHE="/runpod-volume/datasets"
 ENV HUGGINGFACE_HUB_CACHE="/runpod-volume/hub"
 ENV TRANSFORMERS_CACHE="/runpod-volume/hub"
 ENV TORCH_CACHE="/runpod-volume/torch"
 
 COPY src/ .
+
 
 CMD [ "python3", "-u", "/app.py" ]
