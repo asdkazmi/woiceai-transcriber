@@ -317,6 +317,7 @@ def transcribe_without_diarization(paths, from_file):
         logger.info(f"Transcribing : {paths}")
         all_audios = []
         transcriptions = []
+        combined_transcription=""
         num_of_urls = len(paths)
         if type(paths) == list:
             paths = [path for path in paths if path]
@@ -326,24 +327,30 @@ def transcribe_without_diarization(paths, from_file):
 
         for path in paths:
             if from_file:
-                all_audios.append(librosa.load(path, sr=16000, mono=True))
+                audio, sr = librosa.load(path, sr=16000, mono=True)
+                all_audios.append((audio, sr, path))
             else:
                 response = requests.get(path)
                 response.raise_for_status()
                 audio = BytesIO(response.content)
                 all_audios.append(librosa.load(audio))
-        for i in range(num_of_urls):
-            audio, sr = all_audios[i]
-            output_path = "output.wav"
-            sf.write(output_path, audio, sr)
-            output = asr_model.transcribe(paths2audio_files=[output_path], batch_size=4)
-            transcription = output[0][0]
+        for audio, sr, original_path in all_audios:
+            # Split the audio into 10-minute chunks
+            chunk_duration = 10 * 60 * sr  # 10 minutes in samples
+            for i in range(0, len(audio), chunk_duration):
+                chunk = audio[i:i + chunk_duration]
+                output_path = f"output_{original_path.split('/')[-1].replace('.wav', '')}_chunk_{i // chunk_duration + 1}.wav"
+                sf.write(output_path, chunk, sr)
 
-            transcriptions.append([{
-                "text": transcription,
-            }])
-            os.remove(output_path)
-
+                # Transcribe the chunk
+                output = asr_model.transcribe(paths2audio_files=[output_path], batch_size=1)
+                transcription = output[0][0]
+                combined_transcription += transcription + " "
+                os.remove(output_path)
+        combined_transcription = combined_transcription.strip()
+        transcriptions.append([{
+            "text": combined_transcription,
+        }])
         ett = time.time()
         t = ett - stt
         logging.info(f'Transcription time: {t:.3f} sec')

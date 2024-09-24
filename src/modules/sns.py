@@ -24,10 +24,7 @@ def sending_message_attributes_to_sns(message_attributes):
             Message=json.dumps(message),
             MessageAttributes=message_attributes
         )
-        logger.info("Message published to SNS")
         logger.info(f"Message ID: {response['MessageId']}")
-        logger.info(f"Message Attributes Sent: {message_attributes}")
-        logger.info(f"Response: {response}")
 
     except Exception as e:
         logger.error(f"Error publishing message to SNS: {e}")

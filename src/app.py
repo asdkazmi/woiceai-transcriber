@@ -92,10 +92,11 @@ def handler(event):
         message_attributes = {
             "KNOWLEDGEBASE.ID": {"DataType": "String", "StringValue": kbId},
             "KNOWLEDGEBASE.CONTENT": {"DataType": "String",
-                                      "StringValue": json.dumps({"content": s3_key if s3_key else urls, "transcription": transcript})},
+                                      "StringValue": s3_key if s3_key else urls},
             "KNOWLEDGEBASE.CONTENT_TYPE": {"DataType": "String", "StringValue": content_type},
             "KNOWLEDGEBASE.STATUS": {"DataType": "String", "StringValue": "Completed"},
-            "KNOWLEDGEBASE.CREDITS_CONSUMED": {"DataType": "String", "StringValue": str(credits_consumed)}
+            "KNOWLEDGEBASE.CREDITS_CONSUMED": {"DataType": "String", "StringValue": str(credits_consumed)},
+            "KNOWLEDGEBASE.TRANSCRIPTION": {"DataType": "String", "StringValue": transcript}
         }
         sending_message_attributes_to_sns(message_attributes)
         return {"KNOWLEDGEBASE.ID": {"DataType": "String", "Value": kbId},
