@@ -19,8 +19,8 @@ except Exception as e:
     logger.info(e)
 
 # Access the 'Woice' database and the 'chunks' collection
-db = client['woice']
-collection = db['chunks']
+db = client['woice-ai-kb']
+collection = db['document-kb']
 
 
 
