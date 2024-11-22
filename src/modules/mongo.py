@@ -24,10 +24,11 @@ collection = db['document-kb']
 
 
 
-def insert_audio(all_chunks, indices, embeddings, kbId, s3_key):
+def insert_audio(all_chunks, indices, embeddings, kbId, s3_key,title):
     # Prepare documents for insertion
     audio_transcription = [{
         "type": "audio",
+        "title": title,
         "audio_url": s3_key,
         "datetime": datetime.datetime.now(),
         "kbId": kbId,

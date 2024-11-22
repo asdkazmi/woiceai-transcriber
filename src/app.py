@@ -58,6 +58,7 @@ def handler(event):
     s3_key = inputs.get('s3_key')
     kbId = inputs.get('kbId')
     content_type = inputs.get('content_type')
+    title = inputs.get('title')
     diarization = inputs.get('diarization', False)
     text = ""
 
@@ -77,15 +78,18 @@ def handler(event):
 
         logger.info("Converting transcript to chunks")
         all_data = chunks.split_text_into_chunks(content=transcript)
+        audio_chunks = all_data.get("chunks")
+        prefix = f"File Type: Audio; Audio Name: {title}: "
+        updated_audio_chunks = [prefix + item for item in audio_chunks]
 
         logger.info("Creating embeddings for chunks")
-        embeddings, execution_time_embeddings = runpod_api_pipeline(substrings=all_data.get("chunks"), query='',
+        embeddings, execution_time_embeddings = runpod_api_pipeline(substrings=updated_audio_chunks, query='',
                                                                     top_k=5,
                                                                     threshold=100,
                                                                     task='embeddings', embedings=True)
 
         logger.info("Uploading to DB")
-        insert_audio(all_data.get("chunks"), all_data.get("indices"), embeddings, kbId, s3_key)
+        insert_audio(all_data.get("chunks"), all_data.get("indices"), embeddings, kbId, s3_key, title)
         handler_end = time.time()
         handler_duration = handler_end - handler_start
         credits_consumed = cost(handler_duration, execution_time_embeddings)

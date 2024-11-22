@@ -3,7 +3,9 @@
     "s3_key" : "knowledge-bases/dYBAMS1PnxOistTBF5CSBuQiKr23fTXn83IorLVl.mp3",
     "kbId" : "2",
     "content_type" : "audio",
-    "diarization" : false
+    "diarization" : false,
+    "title": "Cartoon.mp4"
+
 
 
   }
