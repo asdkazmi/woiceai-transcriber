@@ -36,7 +36,7 @@ def split_text_into_chunks(content=None, text_file_path="", chunk_size=250, over
         chunk_index = 1
 
         if total_words < (chunk_size + 2 * overlap):
-            prev_data = page
+            prev_data = string
             prev_pg = pg
             prev_chunk_index = chunk_index
             continue
@@ -85,6 +85,6 @@ def split_text_into_chunks(content=None, text_file_path="", chunk_size=250, over
 
     chunks.append(prev_data)
     indices.append({"page_no": prev_pg + 1,
-                    "chunk_no": prev_chunk_index + 1})
+                    "chunk_no": prev_chunk_index})
 
     return {"chunks": chunks, "indices": indices}
