@@ -1,6 +1,6 @@
 {
   "input": {
-    "s3_key" : "knowledge-bases/dYBAMS1PnxOistTBF5CSBuQiKr23fTXn83IorLVl.mp3",
+    "s3_key" : "knowledge-bases/gB46u4za2fnkxUHM7S2k4zhKlLvFa76mQKVUPnn4.mp3",
     "kbId" : "2",
     "content_type" : "audio",
     "diarization" : false,
@@ -10,3 +10,5 @@
 
   }
 }
+
+

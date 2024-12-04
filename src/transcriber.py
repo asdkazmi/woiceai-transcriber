@@ -8,6 +8,8 @@ import logging
 from models import asr_model, pipe
 import soundfile as sf
 import base64
+from pydub import AudioSegment
+from pydub.silence import split_on_silence
 
 # Configure the logging system
 logger = logging.getLogger()
@@ -311,53 +313,132 @@ def transcribe_audio_with_classification_v2_nemo_asr(audio, timeline_norm):
     return text, chunks
 
 
-def transcribe_without_diarization(paths, from_file):
+
+def transcribe_without_diarization(paths, from_file, silence_threshold=-40, min_silence_len=500):
     try:
         stt = time.time()
         logger.info(f"Transcribing : {paths}")
         all_audios = []
         transcriptions = []
-        combined_transcription=""
-        num_of_urls = len(paths)
-        if type(paths) == list:
+
+        # Validate paths
+        if isinstance(paths, list):
             paths = [path for path in paths if path]
         else:
-            logging.info("The provided variable is not a list.")
+            logging.error("The provided variable is not a list.")
             return None, None
 
+        # Load audio files
         for path in paths:
             if from_file:
-                audio, sr = librosa.load(path, sr=16000, mono=True)
-                all_audios.append((audio, sr, path))
+                audio = AudioSegment.from_file(path)
             else:
                 response = requests.get(path)
                 response.raise_for_status()
-                audio = BytesIO(response.content)
-                all_audios.append(librosa.load(audio))
-        for audio, sr, original_path in all_audios:
-            # Split the audio into 10-minute chunks
-            chunk_duration = 10 * 60 * sr  # 10 minutes in samples
-            for i in range(0, len(audio), chunk_duration):
-                chunk = audio[i:i + chunk_duration]
-                output_path = f"output_{original_path.split('/')[-1].replace('.wav', '')}_chunk_{i // chunk_duration + 1}.wav"
-                sf.write(output_path, chunk, sr)
+                audio = AudioSegment.from_file(BytesIO(response.content), format="wav")
+            all_audios.append((audio, path))
 
-                # Transcribe the chunk
-                output = asr_model.transcribe(paths2audio_files=[output_path], batch_size=1)
+        combined_transcription = ""
+        for audio, original_path in all_audios:
+            # Split audio into chunks based on silence
+            chunks = split_on_silence(
+                audio,
+                min_silence_len=min_silence_len,  # Minimum silence duration to consider
+                silence_thresh=silence_threshold,  # Silence threshold in dB
+                keep_silence=500  # Retain some silence at chunk edges
+            )
+            logging.info(f"Detected {len(chunks)} chunks.")
+
+            start_time = 0
+            for idx, chunk in enumerate(chunks):
+                # Calculate the end time for each chunk
+                end_time = start_time + len(chunk) / 1000.0  # Length in seconds
+                chunk_path = f"output_{original_path.split('/')[-1].replace('.wav', '')}_segment_{idx + 1}.wav"
+
+                # Export the chunk to a temporary file
+                chunk.export(chunk_path, format="wav")
+
+                # Transcribe the chunk (assuming you have an ASR model)
+                logging.info(f"Transcribing segment {idx + 1}")
+                # Assuming `asr_model.transcribe` is your transcription function
+                output = asr_model.transcribe(paths2audio_files=[chunk_path], batch_size=1)
                 transcription = output[0][0]
-                combined_transcription += transcription + " "
-                os.remove(output_path)
-        combined_transcription = combined_transcription.strip()
-        transcriptions.append([{
-            "text": combined_transcription,
-        }])
+
+
+                # Append transcription with timing information
+                transcriptions.append({
+                    "start": round(start_time, 2),
+                    "end": round(end_time, 2),
+                    "text": transcription
+                })
+
+                # Remove temporary chunk file
+                start_time = end_time
+
+                # Clean up the chunk file
+                os.remove(chunk_path)
+
         ett = time.time()
         t = ett - stt
         logging.info(f'Transcription time: {t:.3f} sec')
+        return {
+            "status": "completed",
+            "transcription": transcriptions,
+        }
 
-        return {"status": "completed",
-                "transcription": transcriptions
-                }
     except Exception as e:
-        print(e)
+        logging.error(f"Error during transcription: {e}")
+        return {"status": "error", "message": str(e)}
 
+
+
+# def transcribe_without_diarization(paths, from_file):
+#     try:
+#         stt = time.time()
+#         logger.info(f"Transcribing : {paths}")
+#         all_audios = []
+#         transcriptions = []
+#         combined_transcription=""
+#         num_of_urls = len(paths)
+#         if type(paths) == list:
+#             paths = [path for path in paths if path]
+#         else:
+#             logging.info("The provided variable is not a list.")
+#             return None, None
+#
+#         for path in paths:
+#             if from_file:
+#                 audio, sr = librosa.load(path, sr=16000, mono=True)
+#                 all_audios.append((audio, sr, path))
+#             else:
+#                 response = requests.get(path)
+#                 response.raise_for_status()
+#                 audio = BytesIO(response.content)
+#                 all_audios.append(librosa.load(audio))
+#         for audio, sr, original_path in all_audios:
+#             # Split the audio into 10-minute chunks
+#             chunk_duration = 10 * 60 * sr  # 10 minutes in samples
+#             for i in range(0, len(audio), chunk_duration):
+#                 chunk = audio[i:i + chunk_duration]
+#                 output_path = f"output_{original_path.split('/')[-1].replace('.wav', '')}_chunk_{i // chunk_duration + 1}.wav"
+#                 sf.write(output_path, chunk, sr)
+#
+#                 # Transcribe the chunk
+#                 output = asr_model.transcribe(paths2audio_files=[output_path], batch_size=1)
+#                 print(output)
+#                 transcription = output[0][0]
+#                 combined_transcription += transcription + " "
+#                 os.remove(output_path)
+#         combined_transcription = combined_transcription.strip()
+#         transcriptions.append([{
+#             "text": combined_transcription,
+#         }])
+#         ett = time.time()
+#         t = ett - stt
+#         logging.info(f'Transcription time: {t:.3f} sec')
+#
+#         return {"status": "completed",
+#                 "transcription": transcriptions
+#                 }
+#     except Exception as e:
+#         print(e)

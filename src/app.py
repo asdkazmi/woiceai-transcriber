@@ -73,13 +73,14 @@ def handler(event):
         text = transcribe_text_from_url(urls=[file_path], from_file=True, diarization=diarization)
         os.remove(file_path)
     try:
-        transcript = text.get("transcription")[0][0].get("text")
+        transcript = text.get("transcription")
         logger.info("Audio file transcribed successfully")
 
         logger.info("Converting transcript to chunks")
-        all_data = chunks.split_text_into_chunks(content=transcript)
-        audio_chunks = all_data.get("chunks")
-        prefix = f"File Type: Audio; Audio Name: {title}: "
+        audio_chunks = chunks.process_transcript_and_create_chunks(content=transcript)
+        combined_transcript = " ".join(audio_chunks)
+        # chunk = ["time: 0, Transcription: so um\n\ntime: 1.45, transcription: so you live in wales\n"]
+        prefix = f"File Type: Audio; Audio Name: {title}: \n\n"
         updated_audio_chunks = [prefix + item for item in audio_chunks]
 
         logger.info("Creating embeddings for chunks")
@@ -89,7 +90,7 @@ def handler(event):
                                                                     task='embeddings', embedings=True)
 
         logger.info("Uploading to DB")
-        insert_audio(all_data.get("chunks"), all_data.get("indices"), embeddings, kbId, s3_key, title)
+        insert_audio(audio_chunks, embeddings, kbId, s3_key, title)
         handler_end = time.time()
         handler_duration = handler_end - handler_start
         credits_consumed = cost(handler_duration, execution_time_embeddings)
@@ -100,13 +101,13 @@ def handler(event):
             "KNOWLEDGEBASE.CONTENT_TYPE": {"DataType": "String", "StringValue": content_type},
             "KNOWLEDGEBASE.STATUS": {"DataType": "String", "StringValue": "Completed"},
             "KNOWLEDGEBASE.CREDITS_CONSUMED": {"DataType": "String", "StringValue": str(credits_consumed)},
-            "KNOWLEDGEBASE.TRANSCRIPTION": {"DataType": "String", "StringValue": transcript}
+            "KNOWLEDGEBASE.TRANSCRIPTION": {"DataType": "String", "StringValue": combined_transcript}
         }
         sending_message_attributes_to_sns(message_attributes)
         return {"KNOWLEDGEBASE.ID": {"DataType": "String", "Value": kbId},
                 "KNOWLEDGEBASE.CONTENT": {"DataType": "String",
                                           "Value": s3_key if s3_key else urls,
-                                          "transcription": transcript},
+                                          "transcription": combined_transcript},
                 "KNOWLEDGEBASE.CONTENT_TYPE": {"DataType": "String", "Value": content_type},
                 "KNOWLEDGEBASE.STATUS": {"DataType": "String", "Value": "Completed"},
                 "KNOWLEDGEBASE.CREDITS_CONSUMED": {"DataType": "String", "Value": str(credits_consumed)}}

@@ -65,6 +65,6 @@ ENV TRANSFORMERS_CACHE="/runpod-volume/hub"
 ENV TORCH_CACHE="/runpod-volume/torch"
 
 COPY src/ .
-
+COPY .env .
 
 CMD [ "python3", "-u", "/app.py" ]
