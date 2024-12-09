@@ -347,12 +347,6 @@ def transcribe_without_diarization(paths, from_file):
                     "text": transcription
                 })
 
-                # Remove temporary chunk file
-                start_time = end_time
-
-                # Clean up the chunk file
-                os.remove(chunk_path)
-
         ett = time.time()
         t = ett - stt
         logging.info(f'Transcription time: {t:.3f} sec')
