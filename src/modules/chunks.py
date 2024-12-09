@@ -11,7 +11,7 @@ def process_transcript_and_create_chunks(content=None, chunk_size=300):
         # chunk = ["time: 0, Transcription: so um\n\ntime: 1.45, transcription: so you live in wales\n"]
         if not item['text'].strip():
             continue
-        segment = f"Time: {item['start']}, Transcription: {item['text']} \n"
+        segment = f"Time: {item['start']}s, Transcription: {item['text']} \n"
         words_in_segment = segment.split()  # Split the segment into words
 
         # If adding this segment exceeds 300 words, start a new string

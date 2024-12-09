@@ -15,6 +15,7 @@ def convert_audio_to_wav(input_file):
         # Convert the audio file to WAV
         ffmpeg.input(input_file).output(output_file).run()
         logger.info(f"The file is successfully converted to : {output_file}")
+        os.remove(input_file)
         return output_file
     except ffmpeg.Error as e:
         logger.info(f"Error during conversion: {e}")
