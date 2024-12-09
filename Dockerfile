@@ -35,7 +35,7 @@ WORKDIR /
 RUN git clone https://huggingface.co/nvidia/parakeet-rnnt-0.6b nvidia/parakeet-rnnt-0.6b
 RUN git clone https://huggingface.co/nvidia/tts_en_fastpitch nvidia/tts_en_fastpitch
 RUN git clone https://huggingface.co/nvidia/tts_hifigan nvidia/tts_hifigan
-RUN pip3 install torch==2.4.1
+#RUN pip3 install torch==2.4.1
 RUN apt-get update && apt-get install -y libsndfile1 ffmpeg
 RUN pip3 install Cython==3.0.11
 RUN pip3 install packaging==24.1
@@ -65,6 +65,5 @@ ENV TRANSFORMERS_CACHE="/runpod-volume/hub"
 ENV TORCH_CACHE="/runpod-volume/torch"
 
 COPY src/ .
-COPY .env .
 
 CMD [ "python3", "-u", "/app.py" ]
