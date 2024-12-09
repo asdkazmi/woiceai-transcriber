@@ -9,7 +9,9 @@ def process_transcript_and_create_chunks(content=None, chunk_size=300):
     for item in content:
         # Prepare segment with timestamp and content
         # chunk = ["time: 0, Transcription: so um\n\ntime: 1.45, transcription: so you live in wales\n"]
-        segment = f"Time: {item['start']}, Transcription: {item['text']} \n\n"
+        if not item['text'].strip():
+            continue
+        segment = f"Time: {item['start']}, Transcription: {item['text']} \n"
         words_in_segment = segment.split()  # Split the segment into words
 
         # If adding this segment exceeds 300 words, start a new string
@@ -27,6 +29,23 @@ def process_transcript_and_create_chunks(content=None, chunk_size=300):
 
     # Print the result
     return chunks
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # def split_text_into_chunks(content=None, text_file_path="", chunk_size=250, overlap=25, print_output=False):
 #     """

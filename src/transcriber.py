@@ -10,6 +10,7 @@ import soundfile as sf
 import base64
 from pydub import AudioSegment
 from pydub.silence import split_on_silence
+from concurrent.futures import ThreadPoolExecutor
 
 # Configure the logging system
 logger = logging.getLogger()
@@ -314,11 +315,9 @@ def transcribe_audio_with_classification_v2_nemo_asr(audio, timeline_norm):
 
 
 
-def transcribe_without_diarization(paths, from_file, silence_threshold=-40, min_silence_len=500):
+def transcribe_without_diarization(paths, from_file):
     try:
         stt = time.time()
-        logger.info(f"Transcribing : {paths}")
-        all_audios = []
         transcriptions = []
 
         # Validate paths
@@ -327,48 +326,24 @@ def transcribe_without_diarization(paths, from_file, silence_threshold=-40, min_
         else:
             logging.error("The provided variable is not a list.")
             return None, None
+        batch_size=5
+        # Load audio files and split into chunk with timestamps
+        logger.info(f"Loading audio and making chunks")
+        all_chunks, all_timestamps = split_audio_with_timestamps(file_paths=paths, from_file=from_file)
 
-        # Load audio files
-        for path in paths:
-            if from_file:
-                audio = AudioSegment.from_file(path)
-            else:
-                response = requests.get(path)
-                response.raise_for_status()
-                audio = AudioSegment.from_file(BytesIO(response.content), format="wav")
-            all_audios.append((audio, path))
+        chunk_batches = [all_chunks[i:i + batch_size] for i in range(0, len(all_chunks), batch_size)]
+        timestamp_batches = [all_timestamps[i:i + batch_size] for i in range(0, len(all_timestamps), batch_size)]
+        logger.info(f"Transcribing")
+        # Transcribe each batch in parallel
+        for batch_idx, (batch, timestamps) in enumerate(zip(chunk_batches, timestamp_batches)):
+            # Process and transcribe the current batch
+            batch_transcriptions = process_batch(batch)  # Use first path as original_path
 
-        combined_transcription = ""
-        for audio, original_path in all_audios:
-            # Split audio into chunks based on silence
-            chunks = split_on_silence(
-                audio,
-                min_silence_len=min_silence_len,  # Minimum silence duration to consider
-                silence_thresh=silence_threshold,  # Silence threshold in dB
-                keep_silence=500  # Retain some silence at chunk edges
-            )
-            logging.info(f"Detected {len(chunks)} chunks.")
-
-            start_time = 0
-            for idx, chunk in enumerate(chunks):
-                # Calculate the end time for each chunk
-                end_time = start_time + len(chunk) / 1000.0  # Length in seconds
-                chunk_path = f"output_{original_path.split('/')[-1].replace('.wav', '')}_segment_{idx + 1}.wav"
-
-                # Export the chunk to a temporary file
-                chunk.export(chunk_path, format="wav")
-
-                # Transcribe the chunk (assuming you have an ASR model)
-                logging.info(f"Transcribing segment {idx + 1}")
-                # Assuming `asr_model.transcribe` is your transcription function
-                output = asr_model.transcribe(paths2audio_files=[chunk_path], batch_size=1)
-                transcription = output[0][0]
-
-
-                # Append transcription with timing information
+            # Combine transcriptions with their respective timestamps
+            for transcription, (start, end) in zip(batch_transcriptions, timestamps):
                 transcriptions.append({
-                    "start": round(start_time, 2),
-                    "end": round(end_time, 2),
+                    "start": round(start / 1000, 2),  # Convert to seconds and round
+                    "end": round(end / 1000, 2),
                     "text": transcription
                 })
 
@@ -381,6 +356,7 @@ def transcribe_without_diarization(paths, from_file, silence_threshold=-40, min_
         ett = time.time()
         t = ett - stt
         logging.info(f'Transcription time: {t:.3f} sec')
+
         return {
             "status": "completed",
             "transcription": transcriptions,
@@ -391,6 +367,75 @@ def transcribe_without_diarization(paths, from_file, silence_threshold=-40, min_
         return {"status": "error", "message": str(e)}
 
 
+def transcribe_audio(chunk_path):
+    try:
+        # Actual transcription logic
+        output = asr_model.transcribe(paths2audio_files=[chunk_path])
+        transcription = output[0][0]  # Assuming the model returns a nested list
+        return transcription
+    except Exception as e:
+        # Handle any exceptions during transcription
+        logger.error(f"Error transcribing {chunk_path}: {e}")
+        return f"Error: {e}"
+
+
+def process_batch(batch_chunks):
+    """
+    Process a batch of audio chunks, export them as individual files, and transcribe them.
+    """
+    temp_files = []
+
+    for idx, chunk in enumerate(batch_chunks):
+        # Generate a custom file path based on the original file and chunk index
+        chunk_path = f"output_segment_{idx + 1}.wav"
+
+        # Export the chunk to a temporary file
+        chunk.export(chunk_path, format="wav")
+        temp_files.append(chunk_path)
+
+    # Use ThreadPoolExecutor to process the files in parallel
+    with ThreadPoolExecutor() as executor:
+        transcriptions = list(executor.map(transcribe_audio, temp_files))
+    [os.remove(temp_file) for temp_file in temp_files]
+    return transcriptions
+
+
+def split_audio_with_timestamps(file_paths,from_file, min_silence_len=500, silence_threshold=-40, keep_silence=500):
+    all_chunks = []
+    all_timestamps = []
+
+    for file_path in file_paths:
+        # Load audio file
+        if from_file:
+            audio = AudioSegment.from_file(file_path)
+        else:
+            response = requests.get(file_path)
+            response.raise_for_status()
+            audio = AudioSegment.from_file(BytesIO(response.content), format="wav")
+
+
+        audio = audio.set_channels(1).set_frame_rate(16000)
+        # Split audio into chunks based on silence
+        chunks = split_on_silence(
+            audio,
+            min_silence_len=min_silence_len,
+            silence_thresh=silence_threshold,
+            keep_silence=keep_silence
+        )
+        logging.info(f"Detected {len(chunks)} chunks.")
+        # Calculate start and end timestamps
+        timestamps = []
+        current_time = 0  # Start time in milliseconds
+        for chunk in chunks:
+            chunk_start = current_time
+            chunk_end = current_time + len(chunk)
+            timestamps.append((chunk_start, chunk_end))
+            current_time = chunk_end
+
+        all_chunks.extend(chunks)
+        all_timestamps.extend(timestamps)
+
+    return all_chunks, all_timestamps
 
 # def transcribe_without_diarization(paths, from_file):
 #     try:

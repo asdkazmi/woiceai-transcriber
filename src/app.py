@@ -79,7 +79,6 @@ def handler(event):
         logger.info("Converting transcript to chunks")
         audio_chunks = chunks.process_transcript_and_create_chunks(content=transcript)
         combined_transcript = " ".join(audio_chunks)
-        # chunk = ["time: 0, Transcription: so um\n\ntime: 1.45, transcription: so you live in wales\n"]
         prefix = f"File Type: Audio; Audio Name: {title}: \n\n"
         updated_audio_chunks = [prefix + item for item in audio_chunks]
 
