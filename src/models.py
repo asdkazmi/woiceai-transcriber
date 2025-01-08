@@ -1,10 +1,11 @@
-import os
-import torch
 # from transformers import pipeline
 import logging
-from pyannote.audio import Pipeline
+import os
+
 import nemo.collections.asr as nemo_asr
+import torch
 from dotenv import load_dotenv
+from pyannote.audio import Pipeline
 
 load_dotenv()
 

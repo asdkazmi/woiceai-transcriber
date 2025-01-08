@@ -1,8 +1,9 @@
 import logging
-import requests
-import time
-from dotenv import load_dotenv
 import os
+import time
+
+import requests
+from dotenv import load_dotenv
 
 load_dotenv()
 
@@ -69,7 +70,8 @@ def cancel_request(base_url, queue_id):
         return {"status": "Unable to cancel request"}
 
 
-def runpod_api_pipeline(substrings=None, audio_urls=None, audio_s3_key=None, query='', top_k=5, threshold=100, task='embeddings',
+def runpod_api_pipeline(substrings=None, audio_urls=None, audio_s3_key=None, query='', top_k=5, threshold=100,
+                        task='embeddings',
                         embedings=False):
     """
 

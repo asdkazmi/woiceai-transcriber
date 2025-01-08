@@ -1,16 +1,17 @@
+import logging
 import os
 import time
+from concurrent.futures import ThreadPoolExecutor
+from io import BytesIO
+
 import librosa
 import numpy as np
 import requests
-from io import BytesIO
-import logging
-from models import asr_model, pipe
 import soundfile as sf
-import base64
 from pydub import AudioSegment
 from pydub.silence import split_on_silence
-from concurrent.futures import ThreadPoolExecutor
+
+from models import asr_model, pipe
 
 # Configure the logging system
 logger = logging.getLogger()
@@ -314,7 +315,6 @@ def transcribe_audio_with_classification_v2_nemo_asr(audio, timeline_norm):
     return text, chunks
 
 
-
 def transcribe_without_diarization(paths, from_file):
     try:
         stt = time.time()
@@ -326,7 +326,7 @@ def transcribe_without_diarization(paths, from_file):
         else:
             logging.error("The provided variable is not a list.")
             return None, None
-        batch_size=5
+        batch_size = 5
         # Load audio files and split into chunk with timestamps
         logger.info(f"Loading audio and making chunks")
         all_chunks, all_timestamps = split_audio_with_timestamps(file_paths=paths, from_file=from_file)
@@ -394,7 +394,7 @@ def process_batch(batch_chunks):
     return transcriptions
 
 
-def split_audio_with_timestamps(file_paths,from_file, min_silence_len=500, silence_threshold=-40, keep_silence=500):
+def split_audio_with_timestamps(file_paths, from_file, min_silence_len=500, silence_threshold=-40, keep_silence=500):
     all_chunks = []
     all_timestamps = []
 
@@ -406,7 +406,6 @@ def split_audio_with_timestamps(file_paths,from_file, min_silence_len=500, silen
             response = requests.get(file_path)
             response.raise_for_status()
             audio = AudioSegment.from_file(BytesIO(response.content), format="wav")
-
 
         audio = audio.set_channels(1).set_frame_rate(16000)
         # Split audio into chunks based on silence

@@ -1,17 +1,18 @@
-import os
-import json
-import runpod
-import time
 import logging
+import os
+import time
 import traceback
-
 from sys import exc_info
+
+import runpod
+
 from modules import chunks
+from modules.converting_to_wav import convert_audio_to_wav
 from modules.credits import cost
-from modules.embedings import runpod_api_pipeline
+from modules.custom_mongodb_handling import custom_mongodb_processing
+from modules.embeddings import runpod_api_pipeline
 from modules.mongo import insert_audio
 from modules.s3download import download_file_from_s3
-from modules.converting_to_wav import convert_audio_to_wav
 from modules.sns import sending_message_attributes_to_sns
 from transcriber import transcriber_v2_nemo_asr, transcribe_without_diarization
 
@@ -51,6 +52,7 @@ def transcribe_text_from_url(urls, from_file=False, diarization=False):
             }
         }
 
+
 def handler(event):
     handler_start = time.time()
     inputs = event['input']
@@ -60,6 +62,8 @@ def handler(event):
     content_type = inputs.get('content_type')
     title = inputs.get('title')
     diarization = inputs.get('diarization', False)
+    mongodb_srv = inputs.get('mongodb_srv')
+    unique_id = inputs.get('unique_id')
     text = ""
 
     if urls:
@@ -80,6 +84,29 @@ def handler(event):
         audio_chunks = chunks.process_transcript_and_create_chunks(content=transcript)
         combined_transcript = " ".join(audio_chunks)
         prefix = f"File Type: Audio; Audio Name: {title}: \n\n"
+
+        if mongodb_srv:
+            execution_time_embeddings = custom_mongodb_processing(document_chunks=audio_chunks,
+                                                                  mongodb_srv=mongodb_srv, unique_id=unique_id,
+                                                                  prefix=prefix, s3key=s3_key, kbId=kbId,
+                                                                  content_type=content_type, title=title
+                                                                  )
+            handler_end = time.time()
+            handler_duration = handler_end - handler_start
+            credits_consumed = cost(handler_duration, execution_time_embeddings)
+            message_attributes = {
+                "KNOWLEDGEBASE.ID": {"DataType": "String", "StringValue": kbId},
+                "KNOWLEDGEBASE.CONTENT": {"DataType": "String",
+                                          "StringValue": s3_key if s3_key else urls},
+                "KNOWLEDGEBASE.CONTENT_TYPE": {"DataType": "String", "StringValue": content_type},
+                "KNOWLEDGEBASE.STATUS": {"DataType": "String", "StringValue": "Completed"},
+                "KNOWLEDGEBASE.CREDITS_CONSUMED": {"DataType": "String", "StringValue": str(credits_consumed)},
+                "KNOWLEDGEBASE.TRANSCRIPTION": {"DataType": "String", "StringValue": combined_transcript}
+            }
+
+            sending_message_attributes_to_sns(message_attributes)
+            return message_attributes
+
         updated_audio_chunks = [prefix + item for item in audio_chunks]
 
         logger.info("Creating embeddings for chunks")
@@ -103,13 +130,7 @@ def handler(event):
             "KNOWLEDGEBASE.TRANSCRIPTION": {"DataType": "String", "StringValue": combined_transcript}
         }
         sending_message_attributes_to_sns(message_attributes)
-        return {"KNOWLEDGEBASE.ID": {"DataType": "String", "Value": kbId},
-                "KNOWLEDGEBASE.CONTENT": {"DataType": "String",
-                                          "Value": s3_key if s3_key else urls,
-                                          "transcription": combined_transcript},
-                "KNOWLEDGEBASE.CONTENT_TYPE": {"DataType": "String", "Value": content_type},
-                "KNOWLEDGEBASE.STATUS": {"DataType": "String", "Value": "Completed"},
-                "KNOWLEDGEBASE.CREDITS_CONSUMED": {"DataType": "String", "Value": str(credits_consumed)}}
+        return message_attributes
 
 
 
@@ -123,12 +144,7 @@ def handler(event):
             "KNOWLEDGEBASE.CREDITS_CONSUMED": {"DataType": "String", "StringValue": "0"}
         }
         sending_message_attributes_to_sns(message_attributes)
-        return {"KNOWLEDGEBASE.ID": {"DataType": "String", "Value": kbId},
-                "KNOWLEDGEBASE.CONTENT": {"DataType": "String",
-                                          "Value": s3_key if s3_key else urls},
-                "KNOWLEDGEBASE.CONTENT_TYPE": {"DataType": "String", "Value": content_type},
-                "KNOWLEDGEBASE.STATUS": {"DataType": "String", "Value": "Failed"},
-                "KNOWLEDGEBASE.CREDITS_CONSUMED": {"DataType": "String", "Value": "0"}}
+        return message_attributes
 
 
 runpod.serverless.start({

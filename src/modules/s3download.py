@@ -1,10 +1,11 @@
+import hashlib
+import logging
+import os
+import re
+import urllib.parse
+
 import boto3
 import botocore
-import os
-import logging
-import urllib.parse
-import hashlib
-import re
 
 logger = logging.getLogger(__name__)
 

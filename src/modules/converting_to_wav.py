@@ -1,12 +1,13 @@
-import ffmpeg
-import os
 import logging
+import os
+
+import ffmpeg
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-def convert_audio_to_wav(input_file):
 
+def convert_audio_to_wav(input_file):
     directory = os.path.dirname(input_file)
     filename_without_ext = os.path.splitext(os.path.basename(input_file))[0]
     output_file = os.path.join(directory, f"{filename_without_ext}.wav")

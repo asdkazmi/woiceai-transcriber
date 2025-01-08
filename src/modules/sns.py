@@ -1,14 +1,14 @@
 import json
-import os
-import boto3
 import logging
+import os
+
+import boto3
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger()
 
 
 def sending_message_attributes_to_sns(message_attributes):
-
     access_key = os.environ.get("ACCESS_KEY")
     secret_key = os.environ.get("SECRET_KEY")
     sns_client = boto3.client('sns', region_name='us-east-1', aws_access_key_id=access_key,

@@ -2,6 +2,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 def process_transcript_and_create_chunks(content=None, chunk_size=300):
     chunks = []
     current_string = ""
@@ -29,23 +30,6 @@ def process_transcript_and_create_chunks(content=None, chunk_size=300):
 
     # Print the result
     return chunks
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 # def split_text_into_chunks(content=None, text_file_path="", chunk_size=250, overlap=25, print_output=False):
 #     """

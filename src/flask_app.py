@@ -1,5 +1,5 @@
-import logging
 import json
+import logging
 
 from flask import Flask
 from flask_restful import Api, Resource, request
