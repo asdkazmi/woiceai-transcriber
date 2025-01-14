@@ -23,17 +23,25 @@ def connect_custom_mongodb(mongodb_srv):
         logger.info("Pinged your deployment. You successfully connected to MongoDB!")
 
         custom_db = custom_client['woice-ai-kb']
-        custom_collection = custom_db['document-kb']
-        return custom_collection
+        return custom_db
     except errors.PyMongoError as e:
         logger.error(f"Error connecting to MongoDB: {e}")
         raise
 
 
+def check_unique_id(mongodb_srv, unique_id):
+    custom_db = connect_custom_mongodb(mongodb_srv)
+    custom_collection = custom_db['document-kb']
+    existing_document = custom_collection.find_one({"unique_id": unique_id})
+    if existing_document:
+        raise ValueError(f"Document with unique_id '{unique_id}' already exists.")
+
+
 def custom_mongodb_processing(mongodb_srv, document_chunks, prefix, kbId, unique_id, content_type, title,
                               s3key=None):
     try:
-        custom_collection = connect_custom_mongodb(mongodb_srv)
+        custom_db = connect_custom_mongodb(mongodb_srv)
+        custom_collection = custom_db['document-kb']
 
         insert_content(all_chunks=document_chunks, kbId=kbId, custom_collection=custom_collection, s3_key=s3key,
                        unique_id=unique_id)
@@ -94,9 +102,6 @@ def insert_content(all_chunks=None, embedding_dict=None, kbId=None, s3_key=None,
                 except errors.PyMongoError as e:
                     logger.error(f"Error inserting documents: {e}")
         else:
-            existing_document = custom_collection.find_one({"unique_id": unique_id})
-            if existing_document:
-                raise ValueError(f"Document with unique_id '{unique_id}' already exists.")
             documents_custom_db = [{
                 "datetime": datetime.datetime.now(),
                 "kbId": kbId,

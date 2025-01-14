@@ -5,6 +5,7 @@ import os
 import logging
 
 logger = logging.getLogger(__name__)
+
 load_dotenv()
 
 uri = os.getenv('DB_URI')

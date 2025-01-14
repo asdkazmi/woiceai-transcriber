@@ -9,9 +9,9 @@ import runpod
 from modules import chunks
 from modules.converting_to_wav import convert_audio_to_wav
 from modules.credits import cost
-from modules.custom_mongodb_handling import custom_mongodb_processing
+from modules.custom_mongodb_handling import custom_mongodb_processing, check_unique_id
 from modules.embeddings import runpod_api_pipeline
-from modules.mongo import insert_audio
+from modules.mongo import db, insert_audio
 from modules.s3download import download_file_from_s3
 from modules.sns import sending_message_attributes_to_sns
 from transcriber import transcriber_v2_nemo_asr, transcribe_without_diarization
@@ -62,9 +62,24 @@ def handler(event):
     content_type = inputs.get('content_type')
     title = inputs.get('title')
     diarization = inputs.get('diarization', False)
-    mongodb_srv = inputs.get('mongodb_srv')
+    mongodb_srv_id = inputs.get('mongodb_srv_id')
     unique_id = inputs.get('unique_id')
     text = ""
+
+    mongodb_srv = None
+    if mongodb_srv_id:
+        keys_collection = db["keys"]
+        document = keys_collection.find_one({'id': mongodb_srv_id})
+        if document:
+            mongodb_srv = document.get("mongodb_srv")
+            logger.info(f"Fetched mongodb_srv: {mongodb_srv}")
+            try:
+                check_unique_id(mongodb_srv=mongodb_srv, unique_id=unique_id)
+            except ValueError as e:
+                logger.error(str(e))
+                raise
+        else:
+            logger.error(f"Document with id: {mongodb_srv_id} not found.")
 
     if urls:
         logging.info("Received event with audio URLs")
