@@ -62,24 +62,9 @@ def handler(event):
     content_type = inputs.get('content_type')
     title = inputs.get('title')
     diarization = inputs.get('diarization', False)
-    mongodb_srv_id = inputs.get('mongodb_srv_id')
-    unique_id = inputs.get('unique_id')
+    mongodb_srv = inputs.get('mongodb_srv', None)
+    unique_id = inputs.get('unique_id', None)
     text = ""
-
-    mongodb_srv = None
-    if mongodb_srv_id:
-        keys_collection = db["keys"]
-        document = keys_collection.find_one({'id': mongodb_srv_id})
-        if document:
-            mongodb_srv = document.get("mongodb_srv")
-            logger.info(f"Fetched mongodb_srv: {mongodb_srv}")
-            try:
-                check_unique_id(mongodb_srv=mongodb_srv, unique_id=unique_id)
-            except ValueError as e:
-                logger.error(str(e))
-                raise
-        else:
-            logger.error(f"Document with id: {mongodb_srv_id} not found.")
 
     if urls:
         logging.info("Received event with audio URLs")
