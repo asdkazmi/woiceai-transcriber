@@ -1,0 +1,16 @@
+pyannote.audio==3.1.1
+huggingface_hub==0.22.0
+torchaudio==2.0.1
+torchvision==0.15.1
+torch==2.0.0
+accelerate
+transformers==4.35.2
+openai
+pydub
+librosa==0.10.1
+numpy==1.26.4
+runpod==1.3.6
+boto3
+ffmpeg-python
+python-dotenv
+pymongo
